@@ -11,7 +11,6 @@ import torch
 import json
 from torch.utils.data import Dataset
 
-
 from _models._utils import BaseModel
 from utils.training import train
 from utils.args import add_args
@@ -20,6 +19,8 @@ from _networks import network_factory
 from _datasets import dataset_factory
 from datetime import datetime
 
+os.environ["http_proxy"] = "http://127.0.0.1:7890"
+os.environ["https_proxy"] = "http://127.0.0.1:7890"
 
 def set_random_seed(seed):
     random.seed(seed)
@@ -49,6 +50,9 @@ def get_artifacts(args: dict, fabric) -> Tuple[BaseModel, Dataset]:
     # TODO Questo è un po' pericoloso, dobbiamo ricordarci sempre di mettere i primi 3 argomenti fissi e dopo i nostri argomenti, che ci sta eh
 
     dataset = DatasetClass(**{key: args[key] for key in dataset_signature})
+
+    dataset.set_transforms(args["train_transform"], args["test_transform"])
+
     network = NetworkClass(**{key: args[key] for key in network_signature})
 
     server_model = ModelClass(fabric, network, **{key: args[key] for key in model_signature})
@@ -93,6 +97,8 @@ def main(args: dict, output_folders_root: str, nickname: str) -> None:
                 json.dump(args, f, indent=4)
         except Exception as e:
             print(f"Error while saving config: {e}, won't be saving it.")
+
+    print("Arguments passed:", args)
 
     train(fabric, server_model, client_models, dataset, args, output_folder)
 

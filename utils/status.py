@@ -3,11 +3,11 @@ from datetime import datetime
 
 def format_loss(loss) -> str:
     if type(loss) == float or type(loss) == int:
-        return f"{loss:.6f}"
+        return f"{loss:.9f}"
     elif type(loss) == dict:
-        return " ".join([f"{k}: {v:.6f}" for k, v in loss.items()])
+        return " ".join([f"{k}: {v:.9f}" for k, v in loss.items()])
     else: #list
-        return " ".join([f"{v:.6f}" for v in loss])
+        return " ".join([f"{v:.9f}" for v in loss])
 
 
 def progress_bar(

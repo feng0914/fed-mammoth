@@ -4,6 +4,7 @@ from torchvision.datasets import MNIST
 from _datasets._utils import BaseDataset
 from utils.global_consts import DATASET_PATH
 from kornia import augmentation as K
+from torchvision.transforms import Grayscale
 
 TRANSFORMS = {
     "default_train" : lambda x : x,
@@ -19,6 +20,7 @@ class SequentialMNIST(BaseDataset):
     #TEST_TRANSFORM = transforms.ToTensor()
     BASE_TRANSFORM = transforms.Compose(
         [
+            Grayscale(num_output_channels=3),
             transforms.Resize(size=(224, 224), interpolation=3),
             transforms.ToTensor(),
         ]
@@ -63,7 +65,13 @@ class SequentialMNIST(BaseDataset):
 
 
     def train_transform(self, x):
+        # if self.train_transf is None:
+        #     print("Warning: train_transf is None, using 'default_train' transform")
+        #     self.train_transf = "default_train"
         return TRANSFORMS[self.train_transf](x)
     
     def test_transform(self, x):
+        # if self.test_transf is None:
+        #     print("Warning: test_transf is None, using 'default_test' transform")
+        #     self.test_transf = "default_test"
         return TRANSFORMS[self.test_transf](x)

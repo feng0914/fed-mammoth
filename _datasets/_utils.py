@@ -61,6 +61,7 @@ class BaseDataset:
                     default_samples = 7
                     base_class = task * self.N_CLASSES_PER_TASK
                     cur_classes = np.arange(base_class, base_class + self.N_CLASSES_PER_TASK)
+                    print(f"[Task {task}] will train classes: {cur_classes.tolist()}")
                     cpt = self.N_CLASSES_PER_TASK
                     total_samples = np.stack(
                         [dataset.data[dataset.targets == clas].shape[0] for clas in cur_classes]

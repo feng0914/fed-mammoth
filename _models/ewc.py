@@ -139,10 +139,10 @@ class EWC(BaseModel):
 
     def begin_round_client(self, dataloader: DataLoader, server_info: dict):
         self.round += 1
-        self.network.set_params(server_info["params"])
-        if server_info["checkpoint"] is not None:
+        self.network.set_params(server_info["params"]) # 从服务器同步下来的参数 params 被设置到当前模型中
+        if server_info["checkpoint"] is not None: # 恢复上轮模型参数（EWC 需要）
             self.checkpoint = server_info["checkpoint"].to(self.device)
-        if server_info["fisher"] is not None:
+        if server_info["fisher"] is not None: # 恢复 Fisher 信息矩阵（EWC 关键）
             self.fish = server_info["fisher"].to(self.device)
         if self.do_linear_probe and not self.done_linear_probe:
             optimizer = self.optimizer_class(self.network.last.parameters(), lr=self.lr, weight_decay=self.wd)

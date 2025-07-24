@@ -130,6 +130,7 @@ def evaluate_client(fabric, task, model: BaseModel, dataset: BaseDataset, idx: i
                 correct += (pred == labels).sum().item()
                 total += labels.shape[0]
             task_accuracies.append(round(task_correct / task_total * 100, 2))
+    return task_accuracies
 
     model.train(training_status)
     print(
@@ -169,6 +170,7 @@ def evaluate_client_transfer(fabric, task, model: BaseModel, dataset: BaseDatase
                     correct += (pred == labels).sum().item()
                     total += labels.shape[0]
                 task_accuracies.append(round(task_correct / task_total * 100, 2))
+    return task_accuracies
 
     model.train(training_status)
     print(
@@ -216,6 +218,13 @@ def train(
     for task in range(dataset.N_TASKS):
         if task < start_task:
             continue
+        if isinstance(dataset.N_CLASSES_PER_TASK, list):
+            start_class = sum(dataset.N_CLASSES_PER_TASK[:task])
+            end_class = sum(dataset.N_CLASSES_PER_TASK[:task + 1])
+        else:
+            start_class = task * dataset.N_CLASSES_PER_TASK
+            end_class = (task + 1) * dataset.N_CLASSES_PER_TASK
+        print(f"Training Task {task}: Classes = {list(range(start_class, end_class))}")
         #if "oos" in args["dataset"]:
         if dataset.IS_TEXT:
             train_loaders, test_loaders = dataset.get_cur_dataloaders_oos(task)
@@ -295,14 +304,20 @@ def train(
                 model.end_round_client(train_loader)
                 if args["test_local"]:
                     accuracy = evaluate_client(fabric, task, model, dataset, client_idx)
-                    print(f"Client {client_idx} Local acc: {accuracy[0]}")
+                    print(f"After Task {task + 1} trained, per-task accuracies: {accuracy}")
                     if args["wandb"]:
-                        wandb.log({f"Client {client_idx} Local acc": accuracy[0], "comm_round": comm_round + 1 + task * args["num_comm_rounds"]})
+                        wandb.log({
+                            f"Client {client_idx} per-task acc (After Task {task + 1})": accuracy,
+                            "comm_round": comm_round + 1 + task * args["num_comm_rounds"]
+                        })
                 if args["test_local_transfer"]:
                     accuracy = evaluate_client_transfer(fabric, task, model, dataset, client_idx)
-                    print(f"Client {client_idx} Local Transfer acc: {accuracy[0]}")
+                    print(f"After Task {task + 1} trained, per-task Transfer acc: {accuracy}")
                     if args["wandb"]:
-                        wandb.log({f"Client {client_idx} Local Transfer acc": accuracy[0], "comm_round": comm_round + 1 + task * args["num_comm_rounds"]})
+                        wandb.log({
+                            f"Client {client_idx} per-task Transfer acc (After Task {task + 1})": accuracy,
+                            "comm_round": comm_round + 1 + task * args["num_comm_rounds"]
+                        })
 
                 if args["validation_interval"] > 0 and (comm_round + 1) % args["validation_interval"] == 0:
                     model.end_round_validation_client(train_loader, test_loader)
@@ -312,8 +327,11 @@ def train(
                 model.to("cpu")
                 clients_info.append(model.get_client_info(train_loader))
                 torch.cuda.empty_cache()
+
                 if len(train_loader):
-                    print()
+                    print(f"[Client {client_idx}] Completed training with {len(train_loader)} batches.")
+                else:
+                    print(f"[Client {client_idx}] No data batches for current task.")
 
             print("\nRound time:", get_time_str(time() - last_round_time))
             server_model.end_round_server(clients_info)
